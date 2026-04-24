@@ -1,0 +1,100 @@
+=========================================================
+      MULTI-TENANT SAAS TASK MANAGEMENT SYSTEM
+           Comprehensive System Documentation
+=========================================================
+
+---------------------------------------------------------
+1. TECH STACK SELECTION & TECHNICAL RATIONALE
+---------------------------------------------------------
+The framework powering this application was chosen specifically to maximize development speed, ensure rock-solid data integrity, and provide an industry-standard modern user experience.
+
+• Frontend: React.js (via Vite)
+  Why? Vite provides lightning-fast Hot Module Replacement (HMR) for rapid development. React's component-based architecture allows for a completely modular UI, letting us re-use complex components (like Task Cards and Modals) across the application effortlessly.
+
+• Backend: Node.js (Express.js)
+  Why? Express is a battle-tested, unopinionated framework that allows for extremely fine-grained middleware control. Because our system requires rigorous tenant isolation and RBAC checks on every single request, Express allows us to inject authentication interceptors cleanly before any business logic is executed.
+
+• Database: PostgreSQL (Relational Database)
+  Why? A strict relational database was chosen over NoSQL because a multi-tenant SaaS requires GUARANTEED organizational isolation. With PostgreSQL, we can strongly enforce foreign keys (`organization_id`, `task_id`) and `ON DELETE CASCADE` rules. We never have to worry about "orphaned" data. Furthermore, PostgreSQL's JSONB capabilities and powerful aggregation engines allow us to compute dashboard analytics natively inside the database, sending only lightweight numbers to the frontend.
+
+• Tooling & Libraries:
+  - Recharts: For performant, SVG-based data visualization (Line and Bar charts) on the dashboard.
+  - JWT (JSON Web Tokens): For stateless, secure session management.
+  - Bcrypt: For cryptographic password hashing.
+
+
+---------------------------------------------------------
+2. TENANT ISOLATION & SECURITY ARCHITECTURE
+---------------------------------------------------------
+The fundamental challenge of a multi-tenant application is ensuring that Organization A can NEVER query, edit, or leak the data of Organization B, even maliciously.
+
+• Database Data Isolation (The Anchor): 
+  Every core table (`users`, `tasks`, `activity_logs`, etc.) possesses a strict `organization_id` column. There is no such thing as a "global" task.
+
+• Middleware Execution (The Gatekeeper):
+  Any time a user makes a request to the backend, they must pass through a strict sequence of middlewares:
+  
+  1. `authenticateToken`: Verifies the cryptographic signature of the JWT token, ensuring the user is exactly who they claim to be.
+  2. `requireTenant`: Automatically decodes the user token, extracts their unique `organization_id`, and forcibly attaches it to `req.tenantId` in the Node.js memory.
+
+• Controller Implementation:
+  Because the backend relies strictly on the server-injected `req.tenantId`, all database queries are hard-coded to require it. 
+  Example: `SELECT * FROM tasks WHERE organization_id = $1` (Using $1 = req.tenantId). 
+  A user cannot manipulate their client to "fetch" another organization's tasks, because the backend ignores the client's payload and relies entirely on their signed session.
+
+
+---------------------------------------------------------
+3. ROLE-BASED ACCESS CONTROL (RBAC)
+---------------------------------------------------------
+While Tenant Isolation keeps organizations apart, RBAC keeps users within that organization behaving correctly. We utilize an exact `role_enum` of ('ADMIN', 'MEMBER').
+
+• Route-Level Hard Restrictions: 
+  APIs like "Delete Task" or "View Audit Logs" are prefixed with the `requireRole('ADMIN')` middleware. A Member attempting to ping these endpoints is instantly bounced with a 403 Forbidden error before the database is ever queried.
+  
+• Controller-Level Dynamic Restrictions: 
+  Even on shared routes (like `PUT /api/tasks/:id`), the backend parses the role. If it is an ADMIN, they can edit all text content. If it is a MEMBER, the backend strips all incoming data EXCEPT the `status` or `extension_requested` booleans, ensuring Members cannot maliciously alter a task's core title or definition.
+
+• Application-Level Constraints: (Soft Deletes vs Hard Deletes) 
+  Tasks are "Archived" (Soft Deleted with `deleted_at`) rather than wiped from existence, ensuring that past Activity Logs pointing to a task don't crash due to missing foreign keys.
+
+
+---------------------------------------------------------
+4. USER WORKFLOW AND MODULE BREAKDOWN
+---------------------------------------------------------
+Below is the complete lifecycle of how the data flows from organization creation to final task management.
+
+A. Authentication & Onboarding Flow
+   - (ADMIN) Registers a new Organization. This spins up the tenant envelope.
+   - (ADMIN) Adds a new employee directly via the `Team Members` interface. 
+   - (SYSTEM) Generates a temporary default password (`Welcome@123`) and saves `must_change_password = true` in the database.
+   - (MEMBER) Logs in for the first time. The frontend detects the flag and forcibly traps the user in a `ChangePassword` route wrapper. They cannot see the dashboard until they authenticate a secure new password.
+
+B. Task Execution Engine Lifecycle
+   - (ADMIN) Composes a Task (`Title, Description, Priority, Due Date`). Assigns it to an eligible Member.
+   - (MEMBER) Sees the task appear on their board. They can shift the state from `PENDING` -> `IN_PROGRESS` -> `COMPLETED`. 
+   - (MEMBER) If a deadline is too tight, they click "Request Extension".
+   - (ADMIN) Reviews the `COMPLETED` task. They have two choices:
+        1. APPROVE: The task is successfully closed. The UI permanently locks the task, removing all Edit/Delete buttons.
+        2. REJECT: The Admin pushes the task back to `IN_PROGRESS` and leaves a mandatory rejection remark telling the member what to fix.
+
+C. Administrative Control & Analytics Module
+   - (ADMIN) Dashboard Overview: Fetches grouped analytical counts. Utilizing `recharts`, renders a 30-Day Completion Rate timeline chart, and aggregates the top performing employees.
+   - (ADMIN) Audit Logs: Every single action (CREATE, COMPLETE, APPROVE, DELETE) fires a background SQL transaction that logs exactly who did what, and when. Admins can view this chronological timeline to ensure accountability.
+   - (ADMIN) Member Management: If an employee leaves, the admin can click "Suspend". This toggles their `deleted_at` field, stripping their login capabilities instantly, while keeping their historic task completions mathematically intact for the analytics dashboard.
+
+
+---------------------------------------------------------
+5. ROLES AND CAPABILITIES INDEX
+---------------------------------------------------------
+
+★ ADMIN POWERS ★
+• Organization: Create organization, Edit organization details.
+• Team: Add new employees directly, Suspend/Reactivate employee access, View entire team list.
+• Task Management: Create tasks, Edit task titles/descriptions, Assign members, Delete/Archive tasks, Approve or Reject member completions (with remarks).
+• Visibility: Access the Analytical Dashboard (Recharts), Access the Immutable Activity/Audit Logs.
+
+★ MEMBER POWERS ★
+• Authentication: Change personal passwords securely.
+• Team: View other team members (restricted to generic info).
+• Task Management: Read assigned tasks, update tasks visually to IN_PROGRESS or COMPLETED, request Due Date extensions. (Cannot delete tasks, cannot edit task core details).
+• Visibility: Access only personalized Dashboard statistics outlining their local workload. Can view tasks they were explicitly assigned.

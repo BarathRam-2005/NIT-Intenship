@@ -1,0 +1,109 @@
+/* Global Strict Palette Implementation */
+:root {
+  --primary: #475569;
+  --background: #F1F5F9;
+  --card: #FFFFFF;
+  --text: #020617;
+  --border: #CBD5F5;
+
+  /* Feature Status */
+  --task-pending: #FACC15;
+  --task-completed: #22C55E;
+  --task-overdue: #EF4444;
+
+  /* Notifications */
+  --notif-info: #3B82F6;
+  --notif-warning: #FACC15;
+  --notif-urgent: #EF4444;
+
+  /* Permissions */
+  --role-admin: #8B5CF6;
+  --role-member: #3B82F6;
+
+  /* Dashboard Cards */
+  --card-total: #3B82F6;
+  --card-completed: #22C55E;
+  --card-pending: #FACC15;
+  --card-overdue: #EF4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--background);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* ========================================================
+   GLOBAL COMPONENTS
+   ======================================================== */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Premium depth */
+}
+
+/* Inputs & Form Elements */
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background-color: #FFFFFF; /* Hardcoded to avoid system dark-mode bleed */
+  color: var(--text);
+}
+
+.input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.1);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-radius: 8px;
+  padding: 10px 16px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Base Badge Shape */
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Task Badges */
+.badge-pending { background: #FEF9C3; color: #854D0E; }
+.badge-completed { background: #DCFCE7; color: #166534; }
+.badge-overdue { background: #FEE2E2; color: #991B1B; }
+
+/* Notification Badges */
+.notif-info { background: #DBEAFE; color: #1E40AF; }
+.notif-warning { background: #FEF9C3; color: #854D0E; }
+.notif-urgent { background: #FEE2E2; color: #991B1B; }
