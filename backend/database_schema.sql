@@ -29,6 +29,7 @@ CREATE TABLE users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255), -- Nullable for users who authenticate only via OAuth
+    must_change_password BOOLEAN DEFAULT FALSE,
     google_id VARCHAR(255) UNIQUE,
     role role_enum DEFAULT 'MEMBER',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
